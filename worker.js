@@ -78,10 +78,34 @@ async function verifyWebhook(rawBody, signature, secret) {
   });
 }
 
+
+async function ensureSchema(env) {
+  if (!env.DB) throw new Error("D1 database is not connected");
+
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id TEXT NOT NULL UNIQUE,
+      event_type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `).run();
+
+  await env.DB.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_events_created_at
+    ON events(created_at)
+  `).run();
+}
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
+if (
+  env.DB &&
+  ["/api/events", "/api/stripe/webhook"].includes(url.pathname)
+) {
+  await ensureSchema(env);
+}
     try {
       if (url.pathname === "/api/config" && request.method === "GET") {
         return json({

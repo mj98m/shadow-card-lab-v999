@@ -100,11 +100,14 @@ async function ensureSchema(env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-if (
-  env.DB &&
-  ["/api/events", "/api/stripe/webhook"].includes(url.pathname)
-) {
-  await ensureSchema(env);
+
+try {
+  if (
+    env.DB &&
+    ["/api/events", "/api/stripe/webhook"].includes(url.pathname)
+  ) {
+    await ensureSchema(env);
+  }
 }
     try {
       if (url.pathname === "/api/config" && request.method === "GET") {

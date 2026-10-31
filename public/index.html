@@ -1,1 +1,50 @@
-
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SHADOW CARD LAB V99 — Stage 2</title>
+<style>
+:root{--bg:#080d18;--panel:#111a2b;--line:#263650;--txt:#edf3ff;--muted:#9aabc4;--cyan:#57d6e8;--violet:#9d8cff;--green:#4bd49b;--amber:#ffca6a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0%,#1b2850 0,transparent 34%),var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1050px;margin:auto;padding:28px 18px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:32px}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:grid;place-items:center;color:#07111e;font-weight:900;font-size:19px}
+h1{font-size:19px;margin:0}.sub{color:var(--muted);font-size:12px;margin-top:4px}.pill{border:1px solid #285e60;color:#7be6c1;background:#10302f;padding:7px 11px;border-radius:999px;font-size:12px}
+.hero{margin:12px 0 24px}.hero h2{font-size:clamp(26px,4vw,38px);margin:0 0 8px}.hero p{color:var(--muted);line-height:1.8;margin:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:linear-gradient(180deg,#131e32,#0f1727);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 14px 40px #0003}
+h3{margin:0 0 17px;font-size:17px}.field{margin-bottom:16px}label{display:block;color:#c6d3e7;font-size:13px;margin-bottom:8px}
+input{width:100%;background:#0a1220;border:1px solid #30425f;border-radius:12px;color:var(--txt);padding:13px 14px;font:inherit;outline:none}
+input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #57d6e822}
+button{border:0;border-radius:12px;padding:13px 17px;font:inherit;font-weight:750;cursor:pointer}.primary{background:linear-gradient(100deg,var(--cyan),#9b9aff);color:#08111e;width:100%}.secondary{background:#1d2b43;color:#dce8fb;border:1px solid #344866}
+.notice{padding:13px 14px;border-radius:12px;background:#302515;border:1px solid #70552a;color:#ffdf9c;font-size:12px;line-height:1.8;margin-bottom:17px}
+.muted{color:var(--muted);font-size:12px;line-height:1.8}.status{margin-top:15px;padding:13px;border:1px solid var(--line);background:#0a1424;border-radius:12px;line-height:1.8;font-size:13px;min-height:48px}
+.rows{margin-top:12px}.row{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}.tag{font-size:11px;border-radius:999px;padding:5px 9px;background:#23334b;color:#bcd0eb}.green{background:#10352c;color:#7ae4b9}.amber{background:#3b2b18;color:#ffd17e}
+.logitem{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;color:#c6d3e7}
+footer{color:#778aa7;font-size:11px;text-align:center;margin-top:28px;line-height:1.8}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.top{align-items:flex-start}.card{padding:18px}}
+</style></head>
+<body><div class="wrap">
+<header class="top"><div class="brand"><div class="logo">S</div><div><h1>SHADOW CARD LAB <span style="color:var(--cyan)">V99</span></h1><div class="sub">AUTHORIZED PAYMENT TESTING · STAGE 2</div></div></div><div class="pill">● Stripe Test Mode</div></header>
+<section class="hero"><h2>اختبار دفع فعلي داخل Sandbox</h2><p>إنشاء جلسة دفع تجريبية مستضافة لدى مزود الدفع، واستلام النتيجة من الخادم والتحقق منها.</p></section>
+<div class="grid">
+<section class="card"><h3>إعداد عملية الاختبار</h3>
+<div class="notice">هذا الربط يعمل في وضع الاختبار فقط. لا تدخل رقم بطاقة أو CVV في هذه الصفحة. سيتم إدخال بيانات بطاقة الاختبار في صفحة الدفع المستضافة لدى Stripe.</div>
+<div class="field"><label for="bin">بادئة BIN (اختيارية — 5 إلى 8 أرقام)</label><input id="bin" inputmode="numeric" maxlength="8" placeholder="مثال: 555555"><div class="muted">تُحفظ كمرجع اختباري فقط، ولا تُستخدم لتوليد بطاقات أو اختبار أرقام عشوائية.</div></div>
+<button id="pay" class="primary">الانتقال إلى صفحة الدفع التجريبية — $1.00</button>
+<div id="message" class="status">جارٍ التحقق من إعداد الخادم…</div>
+</section>
+<section class="card"><h3>نتيجة العملية</h3><div class="muted">بعد إتمام الدفع التجريبي ستعود إلى هذه الصفحة. سيجلب الموقع حالة جلسة الدفع من Stripe.</div>
+<div id="result" class="rows"><div class="row"><span>حالة الدفع</span><span class="tag">بانتظار الاختبار</span></div></div>
+</section></div>
+<section class="card" style="margin-top:18px"><h3>آخر أحداث Webhook المسجلة</h3><div id="events" class="muted">لا توجد أحداث بعد أو لم يصل Webhook.</div><button class="secondary" id="refresh" style="margin-top:14px">تحديث السجل</button></section>
+<footer>SHADOW CARD LAB V99 · Stage 2<br>لا تُخزّن أرقام البطاقات أو CVV. لاختبار آمن استخدم بيانات Stripe Test Cards فقط.</footer>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+async function loadConfig(){try{let r=await fetch('/api/config');let c=await r.json();$('message').textContent=`الخادم متصل · ${c.paymentProvider} ${c.mode.toUpperCase()} · مبلغ الاختبار $${(c.amount/100).toFixed(2)}`;}catch(e){$('message').textContent='تعذر الاتصال بالخادم. شغّل Backend أولاً.';}}
+$('pay').onclick=async()=>{let bin=$('bin').value.trim();if(bin&&!/^\d{5,8}$/.test(bin)){alert('أدخل من 5 إلى 8 أرقام أو اترك الحقل فارغاً.');return}
+$('pay').disabled=true;$('message').textContent='جارٍ إنشاء جلسة دفع تجريبية…';
+try{let r=await fetch('/api/checkout/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({binPrefix:bin})});let d=await r.json();if(!r.ok)throw new Error(d.error||'فشل إنشاء الجلسة');location.href=d.url;}catch(e){$('message').textContent=e.message;$('pay').disabled=false;}};
+async function checkReturn(){let q=new URLSearchParams(location.search);let s=q.get('session_id');if(q.get('payment')==='cancelled')$('message').textContent='تم إلغاء عملية الاختبار.';if(s){$('message').textContent='تم الرجوع من صفحة الدفع؛ جارٍ جلب الحالة المؤكدة…';try{let r=await fetch('/api/checkout/status?session_id='+encodeURIComponent(s));let d=await r.json();if(!r.ok)throw new Error(d.error);let paid=d.payment_status==='paid';$('result').innerHTML=`<div class="row"><span>حالة الدفع</span><span class="tag ${paid?'green':'amber'}">${paid?'Approved — مدفوع تجريبياً':d.payment_status}</span></div><div class="row"><span>حالة الجلسة</span><b>${d.status}</b></div><div class="row"><span>المبلغ</span><b>${((d.amount_total||0)/100).toFixed(2)} ${(d.currency||'usd').toUpperCase()}</b></div><div class="row"><span>Session ID</span><b>${d.session_id}</b></div>`;$('message').textContent='تم استرجاع النتيجة من Stripe Test Mode.';}catch(e){$('message').textContent=e.message;}}}
+async function loadEvents(){try{let r=await fetch('/api/events');let a=await r.json();$('events').innerHTML=a.length?a.map(x=>`<div class="logitem"><span>${x.status||'event'} · ${x.checkout_session||x.payment_intent||x.id}</span><span>${new Date(x.created_at).toLocaleString('ar-IQ')}</span></div>`).join(''):'لا توجد أحداث بعد. تأكد من إعداد Webhook.';}catch(e){$('events').textContent='تعذر تحميل السجل.'}}
+$('refresh').onclick=loadEvents;loadConfig();checkReturn();loadEvents();
+</script></body></html>

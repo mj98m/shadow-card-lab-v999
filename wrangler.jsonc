@@ -7,8 +7,13 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "run_worker_first": [
-      "/api/*"
-    ]
-  }
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shadow-card-lab-events",
+      "database_id": "30b4203d-018b-4804-a887-e1676d5eeeeb"
+    }
+  ]
 }

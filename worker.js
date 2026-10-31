@@ -35,16 +35,27 @@ async function stripeRequest(path, secret, options = {}) {
 async function verifyWebhook(rawBody, signature, secret) {
   if (!signature || !secret) return false;
 
-  const parts = Object.fromEntries(
-    signature.split(",").map(part => {
-      const i = part.indexOf("=");
-      return [part.slice(0, i), part.slice(i + 1)];
-    })
+  const fields = signature.split(",").map(part => {
+    const i = part.indexOf("=");
+    return [
+      part.slice(0, i).trim(),
+      part.slice(i + 1).trim()
+    ];
+  });
+
+  const timestamp = Number(
+    fields.find(([key]) => key === "t")?.[1]
   );
 
-  const timestamp = Number(parts.t);
+  const signatures = fields
+    .filter(([key]) => key === "v1")
+    .map(([, value]) => value);
 
-  if (!timestamp || Math.abs(Date.now() / 1000 - timestamp) > 300) {
+  if (
+    !timestamp ||
+    Math.abs(Date.now() / 1000 - timestamp) > 300 ||
+    signatures.length === 0
+  ) {
     return false;
   }
 
@@ -66,10 +77,11 @@ async function verifyWebhook(rawBody, signature, secret) {
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
 
-  return (parts.v1 || "").split(";").some(value => {
+  return signatures.some(value => {
     if (value.length !== expected.length) return false;
 
     let diff = 0;
+
     for (let i = 0; i < value.length; i++) {
       diff |= value.charCodeAt(i) ^ expected.charCodeAt(i);
     }
@@ -78,9 +90,10 @@ async function verifyWebhook(rawBody, signature, secret) {
   });
 }
 
-
 async function ensureSchema(env) {
-  if (!env.DB) throw new Error("D1 database is not connected");
+  if (!env.DB) {
+    throw new Error("D1 database is not connected");
+  }
 
   await env.DB.prepare(`
     CREATE TABLE IF NOT EXISTS events (
@@ -97,22 +110,29 @@ async function ensureSchema(env) {
     ON events(created_at)
   `).run();
 }
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-try {
-  if (
-    env.DB &&
-    ["/api/events", "/api/stripe/webhook"].includes(url.pathname)
-  ) {
-    await ensureSchema(env);
-  
-      if (url.pathname === "/api/config" && request.method === "GET") {
+    try {
+      if (
+        env.DB &&
+        ["/api/events", "/api/stripe/webhook"].includes(url.pathname)
+      ) {
+        await ensureSchema(env);
+      }
+
+      if (
+        url.pathname === "/api/config" &&
+        request.method === "GET"
+      ) {
         return json({
           paymentProvider: "Stripe",
           mode: "test",
-          enabled: Boolean(env.STRIPE_SECRET_KEY?.startsWith("sk_test_")),
+          enabled: Boolean(
+            env.STRIPE_SECRET_KEY?.startsWith("sk_test_")
+          ),
           amount: 100,
           currency: "usd"
         });
@@ -123,7 +143,9 @@ try {
         request.method === "POST"
       ) {
         if (!env.STRIPE_SECRET_KEY?.startsWith("sk_test_")) {
-          return json({ error: "Stripe test mode is not configured" }, 503);
+          return json({
+            error: "Stripe test mode is not configured"
+          }, 503);
         }
 
         const input = await request.json().catch(() => ({}));
@@ -138,7 +160,10 @@ try {
         const form = new URLSearchParams();
 
         form.set("mode", "payment");
-        form.set("success_url", `${url.origin}/?session_id={CHECKOUT_SESSION_ID}`);
+        form.set(
+          "success_url",
+          `${url.origin}/?session_id={CHECKOUT_SESSION_ID}`
+        );
         form.set("cancel_url", `${url.origin}/`);
 
         form.set("line_items[0][price_data][currency]", "usd");
@@ -172,13 +197,17 @@ try {
         request.method === "GET"
       ) {
         if (!env.STRIPE_SECRET_KEY?.startsWith("sk_test_")) {
-          return json({ error: "Stripe test mode is not configured" }, 503);
+          return json({
+            error: "Stripe test mode is not configured"
+          }, 503);
         }
 
         const id = url.searchParams.get("session_id") || "";
 
         if (!id.startsWith("cs_test_")) {
-          return json({ error: "Invalid test checkout session" }, 400);
+          return json({
+            error: "Invalid test checkout session"
+          }, 400);
         }
 
         const session = await stripeRequest(
@@ -199,6 +228,12 @@ try {
         url.pathname === "/api/stripe/webhook" &&
         request.method === "POST"
       ) {
+        if (!env.DB) {
+          return json({
+            error: "D1 database is not connected"
+          }, 503);
+        }
+
         const rawBody = await request.text();
 
         const valid = await verifyWebhook(
@@ -208,7 +243,9 @@ try {
         );
 
         if (!valid) {
-          return json({ error: "Invalid webhook signature" }, 400);
+          return json({
+            error: "Invalid webhook signature"
+          }, 400);
         }
 
         const event = JSON.parse(rawBody);
@@ -219,12 +256,12 @@ try {
           "payment_intent.payment_failed"
         ];
 
-        if (accepted.includes(event.type) && env.DB) {
-          await env.DB.prepare(
-            `INSERT OR IGNORE INTO events
-             (event_id, event_type, payload, created_at)
-             VALUES (?, ?, ?, ?)`
-          )
+        if (accepted.includes(event.type)) {
+          await env.DB.prepare(`
+            INSERT OR IGNORE INTO events
+            (event_id, event_type, payload, created_at)
+            VALUES (?, ?, ?, ?)
+          `)
             .bind(
               event.id,
               event.type,
@@ -241,13 +278,20 @@ try {
         url.pathname === "/api/events" &&
         request.method === "GET"
       ) {
-        if (!env.DB) return json({ events: [] });
+        if (!env.DB) {
+          return json({ events: [] });
+        }
 
-        const result = await env.DB.prepare(
-          "SELECT event_id, event_type, payload, created_at FROM events ORDER BY id DESC LIMIT 50"
-        ).all();
+        const result = await env.DB.prepare(`
+          SELECT event_id, event_type, payload, created_at
+          FROM events
+          ORDER BY id DESC
+          LIMIT 50
+        `).all();
 
-        return json({ events: result.results || [] });
+        return json({
+          events: result.results || []
+        });
       }
 
       if (env.ASSETS) {

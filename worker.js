@@ -107,9 +107,7 @@ try {
     ["/api/events", "/api/stripe/webhook"].includes(url.pathname)
   ) {
     await ensureSchema(env);
-  }
-}
-    try {
+  
       if (url.pathname === "/api/config" && request.method === "GET") {
         return json({
           paymentProvider: "Stripe",
